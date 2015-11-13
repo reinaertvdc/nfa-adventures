@@ -10,7 +10,7 @@ public class Level0 extends Level {
      * @param args the arguments, of which the first one must be the filename of the '.aut' file representing the
      *             automaton to check, any other arguments are ignored
      */
-    public final void main(String[] args) {
+    public static void main(String[] args) {
         new Level0().run(args);
     }
 
