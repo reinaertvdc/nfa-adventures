@@ -101,7 +101,6 @@ public class Automaton {
          */
         public void addTransition(String sourceName, String destinationName, String symbol) throws
                 NullPointerException {
-            // TODO: 2015-11-12 implement
             State source = getStateAndAddIfNotFound(sourceName);
             State destination = getStateAndAddIfNotFound(destinationName);
             source.addDepartingTransition(destination, symbol);
