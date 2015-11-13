@@ -3,7 +3,7 @@
  *
  * @author Reinaert Van de Cruys
  */
-public class Level1 {
+public class Level1 extends Level {
     /**
      * Entry point of the program.
      *
@@ -11,6 +11,11 @@ public class Level1 {
      *             automaton to check, any other arguments are ignored
      */
     public static void main(String[] args) {
-        // TODO: 2015-11-12 implement
+        new Level1().run(args);
+    }
+
+    @Override
+    protected final Automaton applyConstraints(Automaton aut) {
+        return null;
     }
 }
