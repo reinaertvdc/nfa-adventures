@@ -89,12 +89,19 @@ public abstract class Level {
             System.out.println("Error: The first argument must be the path to a '.aut' file.");
             return;
         }
+        AutomatonParser automatonParser;
         try {
-            AutomatonParser automatonParser = new AutomatonParser(args[0]);
+            automatonParser = new AutomatonParser(args[0]);
+        } catch (Exception e) {
+            System.out.println("Error: The given file cannot be read. Make sure the path is correct.");
+            return;
+        }
+        try {
             automatonParser.parse();
             System.out.println(applyConstraints(automatonParser.automaton()).getShortestExample(true));
         } catch (Exception e) {
             System.out.println("Error: The given file is not a valid '.aut' file.");
+            return;
         }
     }
 }
