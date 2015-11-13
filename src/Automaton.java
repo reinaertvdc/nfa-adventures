@@ -58,7 +58,7 @@ public class Automaton {
     /**
      * Builds an automaton.
      */
-    public class Builder {
+    public static class Builder {
         /**
          * whether the result of this builder has successfully been requested and thus the building is finished
          */
@@ -83,10 +83,10 @@ public class Automaton {
             if (name == null) {
                 throw new NullPointerException();
             }
-            State state = mStates.get(name);
+            State state = mResult.mStates.get(name);
             if (state == null) {
                 state = new State(name);
-                mStates.put(name, state);
+                mResult.mStates.put(name, state);
             }
             state.setAcceptState(true);
         }
@@ -104,7 +104,7 @@ public class Automaton {
             State source = getStateAndAddIfNotFound(sourceName);
             State destination = getStateAndAddIfNotFound(destinationName);
             source.addDepartingTransition(destination, symbol);
-            mAlphabet.add(symbol);
+            mResult.mAlphabet.add(symbol);
         }
 
         /**
@@ -166,7 +166,7 @@ public class Automaton {
     /**
      * Represents a state of an automaton.
      */
-    private class State {
+    private static class State {
         /**
          * a set of symbols mapped to the set of states they enable the transition to from this state
          */

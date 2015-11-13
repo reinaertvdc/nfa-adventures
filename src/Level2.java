@@ -10,12 +10,16 @@ public class Level2 extends Level {
      * @param args the arguments, of which the first one must be the filename of the '.aut' file representing the
      *             automaton to check, any other arguments are ignored
      */
-    public static void main(String[] args) {
+    public final void main(String[] args) {
         new Level2().run(args);
     }
 
     @Override
     protected final Automaton applyConstraints(Automaton aut) {
-        return null;
+        aut = aut.intersection(constraintFindKeyBeforePassingThroughGates());
+        aut = aut.intersection(constraintJumpInRiverWhenPassingDragonWithoutSword());
+        aut = aut.intersection(constraintFindNoTreasuresAfterDragonHasBeenPassed());
+        aut = aut.intersection(constraintFindAtLeastTwoTreasuresAndLoseAllWhenPassingThroughArc());
+        return aut;
     }
 }
