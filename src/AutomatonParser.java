@@ -50,7 +50,7 @@ public class AutomatonParser {
      * @throws Exception if the file given to the constructor is not a valid '.aut' file
      */
     public void parse() throws Exception {
-        final String START = "(START)", T_LEFT = "|-", FINAL = "(FINAL)", T_RIGHT = "-|";
+        final String START = "(START)", T_LEFT = "|-", FINAL = "(FINAL)", T_RIGHT = "-|", EPSILON = "$";
         Automaton.Builder builder = new Automaton.Builder();
         for (String currentLine : mSourceFile) {
             String[] components = currentLine.split("\\s+");
@@ -58,6 +58,8 @@ public class AutomatonParser {
                 builder.addAcceptState(components[0]);
             } else if (components[0].equals(START) && components[1].equals(T_LEFT)) {
                 builder.setStartState(components[2]);
+            } else if (components[1].equals(EPSILON)){
+                builder.addTransition(components[0], components[2], null);
             } else {
                 builder.addTransition(components[0], components[2], components[1]);
             }
