@@ -1,18 +1,32 @@
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Represents a finite automaton.
  *
+ * @author Robin Machiels
  * @author Reinaert Van de Cruys
  */
 public class Automaton {
+    public static final String ARC = "A";
+    public static final String DRAGON = "D";
+    public static final String GATE = "G";
+    public static final String KEY = "K";
+    public static final String RIVER = "R";
+    public static final String SWORD = "S";
+    public static final String TREASURE = "T";
+
     /**
-     * the alphabet of the language accepted by this automaton, as a set of symbols
+     * the alphabet containing all symbols, indexed by their textual representation
      */
-    private Set<String> mAlphabet = new HashSet<>();
+    private static final Map<String, Symbol> ALPHABET = new HashMap<String, Symbol>() {{
+        put(ARC, new Symbol(ARC));
+        put(DRAGON, new Symbol(DRAGON));
+        put(GATE, new Symbol(GATE));
+        put(KEY, new Symbol(KEY));
+        put(RIVER, new Symbol(RIVER));
+        put(SWORD, new Symbol(SWORD));
+        put(TREASURE, new Symbol(TREASURE));
+    }};
 
     /**
      * the start state of this automaton
@@ -97,14 +111,46 @@ public class Automaton {
          * @param sourceName      the state from which the transition departs
          * @param destinationName the state in which the transition arrives
          * @param symbol          the symbol allowing the transition, or a null pointer to transition without any symbol
+         * @throws IllegalStateException if the result of this builder has already been successfully requested
          * @throws NullPointerException if <code>sourceName</code> or <code>destinationName</code> is a null pointer
+         * @throws IllegalArgumentException if <code>symbol</code> is not contained in the alphabet
          */
         public void addTransition(String sourceName, String destinationName, String symbol) throws
-                NullPointerException {
+                IllegalStateException, NullPointerException, IllegalArgumentException {
+            if (mIsFinished) {
+                throw new IllegalStateException();
+            }
             State source = getStateAndAddIfNotFound(sourceName);
             State destination = getStateAndAddIfNotFound(destinationName);
-            source.addDepartingTransition(destination, symbol);
-            mResult.mAlphabet.add(symbol);
+            Symbol actualSymbol = null;
+            if (symbol != null) {
+                actualSymbol = ALPHABET.get(symbol);
+                if (actualSymbol == null) {
+                    throw new IllegalArgumentException();
+                }
+            }
+            source.addDepartingTransition(destination, actualSymbol);
+        }
+
+        /**
+         * Adds transitions between the given states on all symbols that do not allow a transition in the source state.
+         *
+         * @param sourceName      the state from which the transitions depart
+         * @param destinationName the state at which the transitions arrive
+         * @throws IllegalStateException if the result of this builder has already been successfully requested
+         * @throws NullPointerException if <code>sourceName</code> or <code>destinationName</code> is a null pointer
+         */
+        public void addTransitionsOnRemainingSymbols(String sourceName, String destinationName) throws
+                IllegalStateException, NullPointerException {
+            if (mIsFinished) {
+                throw new IllegalStateException();
+            }
+            State source = getStateAndAddIfNotFound(sourceName);
+            State destination = getStateAndAddIfNotFound(destinationName);
+            Set<Symbol> usedSymbols = source.mDepartingTransitions.keySet();
+            Set<Symbol> remainingSymbols = new HashSet<>(ALPHABET.values());
+            remainingSymbols.removeAll(usedSymbols);
+            source.addDepartingTransitions(destination, remainingSymbols);
         }
 
         /**
@@ -170,7 +216,7 @@ public class Automaton {
         /**
          * a set of symbols mapped to the set of states they enable the transition to from this state
          */
-        private Map<String, Set<State>> mDepartingTransitions = new HashMap<>();
+        private Map<Symbol, Set<State>> mDepartingTransitions = new HashMap<>();
 
         /**
          * whether this state is an accept state or not
@@ -207,7 +253,7 @@ public class Automaton {
          * @param symbol      the symbol allowing the transition, or a null pointer to transition without any symbol
          * @throws NullPointerException if <code>destination</code> is a null pointer
          */
-        public void addDepartingTransition(State destination, String symbol) throws NullPointerException {
+        public void addDepartingTransition(State destination, Symbol symbol) throws NullPointerException {
             if (destination == null) {
                 throw new NullPointerException();
             }
@@ -217,6 +263,29 @@ public class Automaton {
                 mDepartingTransitions.put(symbol, states);
             }
             states.add(destination);
+        }
+
+        /**
+         * Adds departing transitions from this state to the given destination on the given set of symbols.
+         *
+         * @param destination the state at which the transitions arrive
+         * @param symbols     the symbols allowing the transition
+         * @throws NullPointerException if <code>destination</code> or <code>symbols</code> is a null pointer
+         */
+        public void addDepartingTransitions(State destination, Set<Symbol> symbols) throws NullPointerException {
+            if (destination == null || symbols == null) {
+                throw new NullPointerException();
+            }
+            for (Symbol currentSymbol : symbols) {
+                Set<State> existingDestinations = mDepartingTransitions.get(currentSymbol);
+                if (existingDestinations != null) {
+                    existingDestinations.add(destination);
+                } else {
+                    Set<State> destinations = new HashSet<>();
+                    destinations.add(destination);
+                    mDepartingTransitions.put(currentSymbol, destinations);
+                }
+            }
         }
 
         @Override
@@ -230,6 +299,15 @@ public class Automaton {
         @Override
         public int hashCode() {
             return mName.hashCode();
+        }
+
+        /**
+         * Removes all transitions departing from this state on the given symbol.
+         *
+         * @param value the symbol for which to remove all transitions
+         */
+        public void removeTransitionsOnSymbol(Symbol value) {
+            mDepartingTransitions.remove(value);
         }
 
         /**
@@ -266,6 +344,40 @@ public class Automaton {
          */
         public void setStartState(boolean value) {
             mIsStartState = value;
+        }
+    }
+
+    /**
+     * Represents a symbol in the alphabet of an automaton.
+     */
+    private static final class Symbol {
+        /**
+         * the textual representation of this symbol
+         */
+        private final String mValue;
+
+        /**
+         * Creates a symbol with the given textual representation.
+         *
+         * @param value the textual representation of the symbol
+         */
+        public Symbol(String value) {
+            mValue = value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o;
+        }
+
+        @Override
+        public int hashCode() {
+            return mValue.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return mValue;
         }
     }
 }

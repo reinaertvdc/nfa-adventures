@@ -6,6 +6,7 @@ import java.util.List;
 /**
  * Builds an automaton from a '.aut' file.
  *
+ * @author Robin Machiels
  * @author Reinaert Van de Cruys
  */
 public class AutomatonParser {

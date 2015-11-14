@@ -1,17 +1,10 @@
 /**
  * A base class for all levels.
  *
+ * @author Robin Machiels
  * @author Reinaert Van de Cruys
  */
 public abstract class Level {
-    private final String ARC = "A";
-    private final String DRAGON = "D";
-    private final String GATE = "G";
-    private final String KEY = "K";
-    private final String RIVER = "R";
-    private final String SWORD = "S";
-    private final String TREASURE = "T";
-
     /**
      * Returns an automaton equal to the given automaton with the constraints of this level applied to it.
      *
@@ -26,12 +19,14 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintFindAtLeastTwoTreasures() {
-        // TODO: 2015-11-13 implement
         Automaton.Builder builder = new Automaton.Builder();
         String t0 = "t0", t1 = "t1", t2 = "t2";
         builder.setStartState(t0);
-        builder.addTransition(t0, t1, TREASURE);
-        builder.addTransition(t1, t2, TREASURE);
+        builder.addTransition(t0, t1, Automaton.TREASURE);
+        builder.addTransition(t1, t2, Automaton.TREASURE);
+        builder.addTransitionsOnRemainingSymbols(t0, t0);
+        builder.addTransitionsOnRemainingSymbols(t1, t1);
+        builder.addTransitionsOnRemainingSymbols(t2, t2);
         builder.addAcceptState(t2);
         return builder.getResult();
     }
@@ -43,8 +38,18 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintFindAtLeastTwoTreasuresAndLoseAllWhenPassingThroughArc() {
-        // TODO: 2015-11-13 implement
-        return null;
+        Automaton.Builder builder = new Automaton.Builder();
+        String t0 = "t0", t1 = "t1", t2 = "t2";
+        builder.setStartState(t0);
+        builder.addTransition(t0, t1, Automaton.TREASURE);
+        builder.addTransition(t1, t2, Automaton.TREASURE);
+        builder.addTransition(t1, t0, Automaton.ARC);
+        builder.addTransition(t2, t0, Automaton.ARC);
+        builder.addTransitionsOnRemainingSymbols(t0, t0);
+        builder.addTransitionsOnRemainingSymbols(t1, t1);
+        builder.addTransitionsOnRemainingSymbols(t2, t2);
+        builder.addAcceptState(t2);
+        return builder.getResult();
     }
 
     /**
@@ -53,7 +58,7 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintFindKeyBeforePassingThroughGates() {
-        // TODO: 2015-11-13 implement
+        // TODO: 2015-11-13 fix
         return null;
     }
 
@@ -74,8 +79,17 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintJumpInRiverWhenPassingDragonWithoutSword() {
-        // TODO: 2015-11-13 implement
-        return null;
+        Automaton.Builder builder = new Automaton.Builder();
+        String s0 = "s0", s1 = "s1", f = "f";
+        builder.setStartState(s0);
+        builder.addTransition(s0, s1, Automaton.SWORD);
+        builder.addTransition(s0, f, Automaton.DRAGON);
+        builder.addTransition(f, s0, Automaton.RIVER);
+        builder.addTransitionsOnRemainingSymbols(s0, s0);
+        builder.addTransitionsOnRemainingSymbols(s1, s1);
+        builder.addAcceptState(s0);
+        builder.addAcceptState(s1);
+        return builder.getResult();
     }
 
     /**
@@ -101,7 +115,6 @@ public abstract class Level {
             System.out.println(applyConstraints(automatonParser.automaton()).getShortestExample(true));
         } catch (Exception e) {
             System.out.println("Error: The given file is not a valid '.aut' file.");
-            return;
         }
     }
 }
