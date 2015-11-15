@@ -19,24 +19,22 @@ public class Automaton {
      * the alphabet containing all symbols, indexed by their textual representation
      */
     private static final Map<String, Symbol> ALPHABET = new HashMap<String, Symbol>() {{
-        put(ARC, new Symbol(ARC));
-        put(DRAGON, new Symbol(DRAGON));
-        put(GATE, new Symbol(GATE));
-        put(KEY, new Symbol(KEY));
-        put(RIVER, new Symbol(RIVER));
-        put(SWORD, new Symbol(SWORD));
-        put(TREASURE, new Symbol(TREASURE));
+        put(ARC, Symbol.getSymbol(ARC));
+        put(DRAGON, Symbol.getSymbol(DRAGON));
+        put(GATE, Symbol.getSymbol(GATE));
+        put(KEY, Symbol.getSymbol(KEY));
+        put(RIVER, Symbol.getSymbol(RIVER));
+        put(SWORD, Symbol.getSymbol(SWORD));
+        put(TREASURE, Symbol.getSymbol(TREASURE));
     }};
-
+    /**
+     * the set of states of this automaton, indexed by their name
+     */
+    private final Map<String, State> mStates = new HashMap<>();
     /**
      * the start state of this automaton
      */
     private State mStartState = null;
-
-    /**
-     * the set of states of this automaton, indexed by their name
-     */
-    private Map<String, State> mStates = new HashMap<>();
 
     /**
      * Creates an automaton without any states (and thus invalid, since it has no start state). This private
@@ -44,6 +42,24 @@ public class Automaton {
      * builder to create a valid automaton.
      */
     private Automaton() {
+    }
+
+    /**
+     * Converts the given string to its corresponding symbol.
+     *
+     * @param string the string representation to get the symbol for
+     * @return the requested symbol
+     * @throws IllegalArgumentException if no symbol exists matching the given string
+     */
+    private static Symbol toSymbol(String string) throws IllegalArgumentException {
+        if (string == null) {
+            return null;
+        }
+        Symbol symbol = ALPHABET.get(string);
+        if (symbol == null) {
+            throw new IllegalArgumentException();
+        }
+        return symbol;
     }
 
     /**
@@ -55,7 +71,11 @@ public class Automaton {
      */
     public String getShortestExample(Boolean accept) {
         // TODO: 2015-11-12 implement
-        return null;
+        if (accept) {
+            return null;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -66,7 +86,7 @@ public class Automaton {
      */
     public Automaton intersection(Automaton aut) {
         // TODO: 2015-11-12 implement
-        return null;
+        return aut;
     }
 
     /**
@@ -74,34 +94,28 @@ public class Automaton {
      */
     public static class Builder {
         /**
+         * the automaton that is created by this builder
+         */
+        private final Automaton mResult = new Automaton();
+        /**
          * whether the result of this builder has successfully been requested and thus the building is finished
          */
         private boolean mIsFinished = false;
 
         /**
-         * the automaton that is created by this builder
-         */
-        private Automaton mResult = new Automaton();
-
-        /**
          * Adds a state with the given name as an accept state to the automaton.
          *
          * @param name the name of the accept state
-         * @throws IllegalStateException if the result of this builder has already been successfully requested
-         * @throws NullPointerException  if <code>name</code> is a null pointer
+         * @throws IllegalStateException    if the result of this builder has already been successfully requested
+         * @throws NullPointerException     if <code>name</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is an empty string
          */
-        public void addAcceptState(String name) throws IllegalStateException, NullPointerException {
+        public void addAcceptState(String name) throws IllegalStateException, NullPointerException,
+                IllegalArgumentException {
             if (mIsFinished) {
                 throw new IllegalStateException();
             }
-            if (name == null) {
-                throw new NullPointerException();
-            }
-            State state = mResult.mStates.get(name);
-            if (state == null) {
-                state = new State(name);
-                mResult.mStates.put(name, state);
-            }
+            State state = getStateAndAddIfNotFound(name);
             state.setAcceptState(true);
         }
 
@@ -111,9 +125,9 @@ public class Automaton {
          * @param sourceName      the state from which the transition departs
          * @param destinationName the state in which the transition arrives
          * @param symbol          the symbol allowing the transition, or a null pointer to transition without any symbol
-         * @throws IllegalStateException if the result of this builder has already been successfully requested
-         * @throws NullPointerException if <code>sourceName</code> or <code>destinationName</code> is a null pointer
-         * @throws IllegalArgumentException if <code>symbol</code> is not contained in the alphabet
+         * @throws IllegalStateException    if the result of this builder has already been successfully requested
+         * @throws NullPointerException     if <code>sourceName</code> or <code>destinationName</code> is a null pointer
+         * @throws IllegalArgumentException if any of the parameters is invalid
          */
         public void addTransition(String sourceName, String destinationName, String symbol) throws
                 IllegalStateException, NullPointerException, IllegalArgumentException {
@@ -122,14 +136,7 @@ public class Automaton {
             }
             State source = getStateAndAddIfNotFound(sourceName);
             State destination = getStateAndAddIfNotFound(destinationName);
-            Symbol actualSymbol = null;
-            if (symbol != null) {
-                actualSymbol = ALPHABET.get(symbol);
-                if (actualSymbol == null) {
-                    throw new IllegalArgumentException();
-                }
-            }
-            source.addDepartingTransition(destination, actualSymbol);
+            source.addDepartingTransition(destination, toSymbol(symbol));
         }
 
         /**
@@ -137,18 +144,19 @@ public class Automaton {
          *
          * @param sourceName      the state from which the transitions depart
          * @param destinationName the state at which the transitions arrive
-         * @throws IllegalStateException if the result of this builder has already been successfully requested
-         * @throws NullPointerException if <code>sourceName</code> or <code>destinationName</code> is a null pointer
+         * @throws IllegalStateException    if the result of this builder has already been successfully requested
+         * @throws NullPointerException     if <code>sourceName</code> or <code>destinationName</code> is a null pointer
+         * @throws IllegalArgumentException if <code>sourceName</code> or <code>destinationName</code> is invalid
          */
         public void addTransitionsOnRemainingSymbols(String sourceName, String destinationName) throws
-                IllegalStateException, NullPointerException {
+                IllegalStateException, NullPointerException, IllegalArgumentException {
             if (mIsFinished) {
                 throw new IllegalStateException();
             }
             State source = getStateAndAddIfNotFound(sourceName);
             State destination = getStateAndAddIfNotFound(destinationName);
-            Set<Symbol> usedSymbols = source.mDepartingTransitions.keySet();
             Set<Symbol> remainingSymbols = new HashSet<>(ALPHABET.values());
+            Set<Symbol> usedSymbols = source.mDepartingTransitions.keySet();
             remainingSymbols.removeAll(usedSymbols);
             source.addDepartingTransitions(destination, remainingSymbols);
         }
@@ -172,9 +180,10 @@ public class Automaton {
          *
          * @param name name of the state to get
          * @return the state with the given name
-         * @throws NullPointerException if <code>name</code> is a null pointer
+         * @throws NullPointerException     if <code>name</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is an empty string
          */
-        private State getStateAndAddIfNotFound(String name) throws NullPointerException {
+        private State getStateAndAddIfNotFound(String name) throws NullPointerException, IllegalArgumentException {
             if (name == null) {
                 throw new NullPointerException();
             }
@@ -187,25 +196,37 @@ public class Automaton {
         }
 
         /**
-         * Makes a state with the given name the start state of the automaton.
+         * Removes all transitions departing from the given source on the given symbol.
          *
-         * @param name the name of the start state
-         * @throws IllegalStateException if the result of this builder has already been successfully requested
-         * @throws NullPointerException  if <code>name</code> is a null pointer
+         * @param sourceName the name of the state from which the transitions depart
+         * @param symbol     the symbol allowing the transitions
+         * @throws IllegalStateException    if the result of this builder has already been successfully requested
+         * @throws NullPointerException     if <code>sourceName</code> is a null pointer
+         * @throws IllegalArgumentException if <code>sourceName</code> or <code>symbol</code> are not valid
          */
-        public void setStartState(String name) throws IllegalStateException, NullPointerException {
+        public void removeTransitionsOnSymbol(String sourceName, String symbol) throws IllegalStateException,
+                NullPointerException, IllegalArgumentException {
             if (mIsFinished) {
                 throw new IllegalStateException();
             }
-            if (name == null) {
-                throw new NullPointerException();
+            State source = getStateAndAddIfNotFound(sourceName);
+            source.removeTransitionsOnSymbol(toSymbol(symbol));
+        }
+
+        /**
+         * Makes the state with the given name the start state of the automaton.
+         *
+         * @param name the name of the start state
+         * @throws IllegalStateException    if the result of this builder has already been successfully requested
+         * @throws NullPointerException     if <code>name</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is not a valid state name
+         */
+        public void setStartState(String name) throws IllegalStateException, NullPointerException,
+                IllegalArgumentException {
+            if (mIsFinished) {
+                throw new IllegalStateException();
             }
-            if (mResult.mStartState != null) {
-                mResult.mStartState.setStartState(false);
-            }
-            State newStartState = getStateAndAddIfNotFound(name);
-            newStartState.setStartState(true);
-            mResult.mStartState = newStartState;
+            mResult.mStartState = getStateAndAddIfNotFound(name);
         }
     }
 
@@ -216,32 +237,29 @@ public class Automaton {
         /**
          * a set of symbols mapped to the set of states they enable the transition to from this state
          */
-        private Map<Symbol, Set<State>> mDepartingTransitions = new HashMap<>();
-
+        private final Map<Symbol, Set<State>> mDepartingTransitions = new HashMap<>();
+        /**
+         * the name of this state
+         */
+        private final String mName;
         /**
          * whether this state is an accept state or not
          */
         private boolean mIsAcceptState = false;
 
         /**
-         * whether this state is a start state or not
-         */
-        private boolean mIsStartState = false;
-
-        /**
-         * the name of this state
-         */
-        private String mName;
-
-        /**
-         * Creates a state with the given name that is neither an accept state nor a start state.
+         * Creates a state with the given name that is not an accept state.
          *
          * @param name the name of the state
-         * @throws NullPointerException if <code>name</code> is a null pointer
+         * @throws NullPointerException     if <code>name</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is an empty string
          */
-        public State(String name) throws NullPointerException {
+        public State(String name) throws NullPointerException, IllegalArgumentException {
             if (name == null) {
                 throw new NullPointerException();
+            }
+            if (name.equals("")) {
+                throw new IllegalArgumentException();
             }
             mName = name;
         }
@@ -327,24 +345,6 @@ public class Automaton {
         public void setAcceptState(boolean value) {
             mIsAcceptState = value;
         }
-
-        /**
-         * Returns whether this state is a start state.
-         *
-         * @return <code>true</code> if this state is a start state, <code>false</code> otherwise
-         */
-        public boolean isStartState() {
-            return mIsStartState;
-        }
-
-        /**
-         * Sets whether this state is a start state.
-         *
-         * @param value <code>true</code> to make this state a start state, <code>false</code> otherwise
-         */
-        public void setStartState(boolean value) {
-            mIsStartState = value;
-        }
     }
 
     /**
@@ -352,17 +352,39 @@ public class Automaton {
      */
     private static final class Symbol {
         /**
+         * a set of all created symbols, indexed by their textual representation
+         */
+        private static final Map<String, Symbol> mSymbols = new HashMap<>();
+        /**
          * the textual representation of this symbol
          */
-        private final String mValue;
+        private final String mString;
 
         /**
          * Creates a symbol with the given textual representation.
          *
-         * @param value the textual representation of the symbol
+         * @param string the textual representation of the symbol
          */
-        public Symbol(String value) {
-            mValue = value;
+        private Symbol(String string) {
+            mString = string;
+        }
+
+        /**
+         * Returns a symbol with the given textual representation.
+         *
+         * @param string the textual representation of the symbol
+         * @throws NullPointerException if <code>string</code> is a null pointer
+         */
+        public static Symbol getSymbol(String string) throws NullPointerException {
+            if (string == null) {
+                throw new NullPointerException();
+            }
+            Symbol symbol = mSymbols.get(string);
+            if (symbol == null) {
+                symbol = new Symbol(string);
+                mSymbols.put(string, symbol);
+            }
+            return symbol;
         }
 
         @Override
@@ -372,12 +394,12 @@ public class Automaton {
 
         @Override
         public int hashCode() {
-            return mValue.hashCode();
+            return mString.hashCode();
         }
 
         @Override
         public String toString() {
-            return mValue;
+            return mString;
         }
     }
 }

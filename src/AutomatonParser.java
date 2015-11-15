@@ -11,14 +11,13 @@ import java.util.List;
  */
 public class AutomatonParser {
     /**
+     * the file from which the automaton is parsed, every entry representing the next line in the file
+     */
+    private final List<String> mSourceFile = new ArrayList<>();
+    /**
      * the automaton parsed by this parser
      */
     private Automaton mResult = null;
-
-    /**
-     * the file from which the automaton is parsed, every entry representing the next line in the file
-     */
-    private List<String> mSourceFile = new ArrayList<>();
 
     /**
      * Reads in the given '.aut' file.
@@ -59,7 +58,7 @@ public class AutomatonParser {
                 builder.addAcceptState(components[0]);
             } else if (components[0].equals(START) && components[1].equals(T_LEFT)) {
                 builder.setStartState(components[2]);
-            } else if (components[1].equals(EPSILON)){
+            } else if (components[1].equals(EPSILON)) {
                 builder.addTransition(components[0], components[2], null);
             } else {
                 builder.addTransition(components[0], components[2], components[1]);
