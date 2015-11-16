@@ -58,8 +58,14 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintFindKeyBeforePassingThroughGates() {
-        // TODO: 2015-11-13 fix
-        return null;
+        Automaton.Builder builder = new Automaton.Builder();
+        String k0 = "k0", k1 = "k1";
+        builder.setStartState(k0);
+        builder.addTransitionsOnRemainingSymbols(k0, k1);
+        builder.addTransitionsOnRemainingSymbols(k1, k1);
+        builder.removeTransitionsOnSymbol(k0, Automaton.KEY);
+        builder.addAcceptState(k1);
+        return builder.getResult();
     }
 
     /**
@@ -68,8 +74,15 @@ public abstract class Level {
      * @return an automaton representing the constraint
      */
     protected final Automaton constraintFindNoTreasuresAfterDragonHasBeenPassed() {
-        // TODO: 2015-11-13 implement
-        return null;
+        Automaton.Builder builder = new Automaton.Builder();
+        String d0 = "d0", d1 = "d1";
+        builder.setStartState(d0);
+        builder.addTransition(d0, d1, Automaton.DRAGON);
+        builder.addTransitionsOnRemainingSymbols(d0, d0);
+        builder.addTransitionsOnRemainingSymbols(d1, d1);
+        builder.removeTransitionsOnSymbol(d1, Automaton.TREASURE);
+        builder.addAcceptState(d1);
+        return builder.getResult();
     }
 
     /**
