@@ -53,7 +53,21 @@ public class Automaton {
      * @param other the automaton to copy
      */
     private Automaton(Automaton other) {
-        // TODO: 2015-11-16 implement
+        for (Map.Entry<String, State> currentOtherState : other.mStates.entrySet()) {
+            mStates.put(currentOtherState.getKey(), new State(currentOtherState.getValue()));
+        }
+        for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
+            State currentOtherState = currentOtherStatesEntry.getValue();
+            State currentOwnState = mStates.get(currentOtherState.getName());
+            for (Map.Entry<Symbol, Set<State>> currentSymbolEntry: currentOtherState.mDepartingTransitions.entrySet()) {
+                Symbol currentSymbol = currentSymbolEntry.getKey();
+                for (State currentDestination : currentSymbolEntry.getValue()) {
+                    currentOwnState.addDepartingTransition(mStates.get(currentDestination.getName()), currentSymbol);
+                }
+            }
+        }
+        mStartState = mStates.get(other.mStartState.getName());
+        mIsDFA = other.mIsDFA;
     }
 
     /**
@@ -319,6 +333,20 @@ public class Automaton {
         }
 
         /**
+         * Creates a copy of the given state.
+         *
+         * @param other the state to copy
+         * @throws NullPointerException if <code>other</code> is a null pointer
+         */
+        public State(State other) throws NullPointerException {
+            if (other == null) {
+                throw new NullPointerException();
+            }
+            mName = other.mName;
+            mIsAcceptState = other.mIsAcceptState;
+        }
+
+        /**
          * Adds a departing transition from this state to the given destination on the given symbol.
          *
          * @param destination the state at which the transition arrives
@@ -366,6 +394,15 @@ public class Automaton {
             if (o == null || getClass() != o.getClass()) return false;
             State state = (State) o;
             return mName.equals(state.mName);
+        }
+
+        /**
+         * Returns the name of this state.
+         *
+         * @return the name of this state
+         */
+        public String getName() {
+            return mName;
         }
 
         @Override
