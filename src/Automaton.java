@@ -53,8 +53,8 @@ public class Automaton {
      * @param other the automaton to copy
      */
     private Automaton(Automaton other) {
-        for (Map.Entry<String, State> currentOtherState : other.mStates.entrySet()) {
-            mStates.put(currentOtherState.getKey(), new State(currentOtherState.getValue()));
+        for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
+            mStates.put(currentOtherStatesEntry.getKey(), new State(currentOtherStatesEntry.getValue()));
         }
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
             State currentOtherState = currentOtherStatesEntry.getValue();
@@ -97,8 +97,12 @@ public class Automaton {
         if (!mIsDFA) {
             return toDFA().complement();
         }
-        // TODO: 2015-11-16 implement
-        return this;
+        Automaton complement = new Automaton(this);
+        for (Map.Entry<String, State> currentStatesEntry : complement.mStates.entrySet()) {
+            State currentState = currentStatesEntry.getValue();
+            currentState.setAcceptState(!currentState.isAcceptState());
+        }
+        return complement;
     }
 
     /**
