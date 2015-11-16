@@ -32,16 +32,28 @@ public class Automaton {
      */
     private final Map<String, State> mStates = new HashMap<>();
     /**
+     * whether this automaton is a DFA or an NFA
+     */
+    private boolean mIsDFA = false;
+    /**
      * the start state of this automaton
      */
     private State mStartState = null;
 
     /**
-     * Creates an automaton without any states (and thus invalid, since it has no start state). This private
-     * constructor is only defined to prevent outer classes from creating instances of this class. Use the automaton
+     * Creates an automaton without any states (and thus invalid, since it has no start state). Use the automaton
      * builder to create a valid automaton.
      */
     private Automaton() {
+    }
+
+    /**
+     * Creates a copy of the given automaton.
+     *
+     * @param other the automaton to copy
+     */
+    private Automaton(Automaton other) {
+        // TODO: 2015-11-16 implement
     }
 
     /**
@@ -60,6 +72,19 @@ public class Automaton {
             throw new IllegalArgumentException();
         }
         return symbol;
+    }
+
+    /**
+     * Returns an automaton accepting the complement of the language accepted by this automaton.
+     *
+     * @return an automaton accepting the complement of the language accepted by this automaton
+     */
+    public Automaton complement() {
+        if (!mIsDFA) {
+            return toDFA().complement();
+        }
+        // TODO: 2015-11-16 implement
+        return this;
     }
 
     /**
@@ -85,8 +110,37 @@ public class Automaton {
      * @return an automaton accepting the intersection of the languages accepted by this and the given automaton
      */
     public Automaton intersection(Automaton aut) {
-        // TODO: 2015-11-12 implement
-        return aut;
+        if (aut == null) {
+            return null;
+        }
+        return (this.complement().union(aut.complement()).complement());
+    }
+
+    /**
+     * Returns a DFA equivalent (accepting the same language) to this automaton.
+     *
+     * @return a DFA equivalent to this automaton
+     */
+    private Automaton toDFA() {
+        if (mIsDFA) {
+            return new Automaton(this);
+        }
+        // TODO: 2015-11-16 implement
+        return this;
+    }
+
+    /**
+     * Returns an automaton accepting the union of the languages accepted by this and the given automaton.
+     *
+     * @param aut the automaton accepting the language to take the union with
+     * @return an automaton accepting the union of the languages accepted by this and the given automaton
+     */
+    public Automaton union(Automaton aut) {
+        if (aut == null) {
+            return null;
+        }
+        // TODO: 2015-11-16 implement
+        return this;
     }
 
     /**
