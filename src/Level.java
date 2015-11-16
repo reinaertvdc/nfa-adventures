@@ -61,9 +61,11 @@ public abstract class Level {
         Automaton.Builder builder = new Automaton.Builder();
         String k0 = "k0", k1 = "k1";
         builder.setStartState(k0);
-        builder.addTransitionsOnRemainingSymbols(k0, k1);
+        builder.addTransition(k0, k1, Automaton.KEY);
+        builder.addTransitionsOnRemainingSymbols(k0, k0);
         builder.addTransitionsOnRemainingSymbols(k1, k1);
-        builder.removeTransitionsOnSymbol(k0, Automaton.KEY);
+        builder.removeTransitionsOnSymbol(k0, Automaton.GATE);
+        builder.addAcceptState(k0);
         builder.addAcceptState(k1);
         return builder.getResult();
     }
@@ -81,6 +83,7 @@ public abstract class Level {
         builder.addTransitionsOnRemainingSymbols(d0, d0);
         builder.addTransitionsOnRemainingSymbols(d1, d1);
         builder.removeTransitionsOnSymbol(d1, Automaton.TREASURE);
+        builder.addAcceptState(d0);
         builder.addAcceptState(d1);
         return builder.getResult();
     }
