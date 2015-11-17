@@ -53,19 +53,7 @@ public class Automaton {
      * @param other the automaton to copy
      */
     private Automaton(Automaton other) {
-        for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            mStates.put(currentOtherStatesEntry.getKey(), new State(currentOtherStatesEntry.getValue()));
-        }
-        for (State currentOtherState : other.mStates.values()) {
-            State currentOwnState = mStates.get(currentOtherState.getName());
-            for (Map.Entry<Symbol, Set<State>> currentSymbolEntry : currentOtherState.mDepartingTransitions.entrySet()) {
-                Symbol currentSymbol = currentSymbolEntry.getKey();
-                for (State currentDestination : currentSymbolEntry.getValue()) {
-                    currentOwnState.addDepartingTransition(mStates.get(currentDestination.getName()), currentSymbol);
-                }
-            }
-        }
-        mStartState = mStates.get(other.mStartState.getName());
+        mStartState = includeAutomaton(other, "");
         mIsDFA = other.mIsDFA;
     }
 
@@ -85,6 +73,30 @@ public class Automaton {
             throw new IllegalArgumentException();
         }
         return symbol;
+    }
+
+    /**
+     * Creates a copy of the given automaton in this automaton, prefixing the name of every state with the given prefix.
+     *
+     * @param other       the automaton to copy
+     * @param statePrefix the prefix to add to every state imported from the given automaton
+     * @return the start state of the included automaton (which is not marked as the start state of this automaton)
+     */
+    private State includeAutomaton(Automaton other, String statePrefix) {
+        for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
+            mStates.put(currentOtherStatesEntry.getKey(), new State(statePrefix + currentOtherStatesEntry.getValue()));
+        }
+        for (State currentOtherState : other.mStates.values()) {
+            State currentOwnState = mStates.get(currentOtherState.getName());
+            for (Map.Entry<Symbol, Set<State>> currentSymbolEntry :
+                    currentOtherState.mDepartingTransitions.entrySet()) {
+                Symbol currentSymbol = currentSymbolEntry.getKey();
+                for (State currentDestination : currentSymbolEntry.getValue()) {
+                    currentOwnState.addDepartingTransition(mStates.get(currentDestination.getName()), currentSymbol);
+                }
+            }
+        }
+        return mStates.get(statePrefix + other.mStartState.getName());
     }
 
     /**
@@ -186,8 +198,18 @@ public class Automaton {
         if (aut == null) {
             return null;
         }
-        // TODO: 2015-11-16 implement
-        return this;
+        String thisStatesPrefix = "a";
+        String autStatesPrefix = "b";
+        String newStartStateName = "s";
+        Automaton union = new Automaton();
+        State thisStartState = union.includeAutomaton(this, thisStatesPrefix);
+        State autStartState = union.includeAutomaton(aut, autStatesPrefix);
+        State newStartState = new State(newStartStateName);
+        union.mStates.put(newStartStateName, newStartState);
+        newStartState.addDepartingTransition(thisStartState, null);
+        newStartState.addDepartingTransition(autStartState, null);
+        union.mStartState = newStartState;
+        return union;
     }
 
     /**
