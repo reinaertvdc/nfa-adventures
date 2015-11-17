@@ -136,22 +136,32 @@ public abstract class Level {
      *             automaton to check, any other arguments are ignored
      */
     protected final void run(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Error: The first argument must be the path to a '.aut' file.");
-            return;
+        String filename;
+        if (args.length >= 1) {
+            filename = args[0];
+        } else {
+            filename = "adventure.aut";
         }
         AutomatonParser automatonParser;
         try {
-            automatonParser = new AutomatonParser(args[0]);
+            automatonParser = new AutomatonParser(filename);
         } catch (Exception e) {
-            System.out.println("Error: The given file cannot be read. Make sure the path is correct.");
+            System.out.println("Error: The file '" + filename + "' cannot be read, exiting...");
             return;
         }
         try {
             automatonParser.parse();
-            System.out.println(applyConstraints(automatonParser.automaton()).getShortestExample(true));
         } catch (Exception e) {
-            System.out.println("Error: The given file is not a valid '.aut' file.");
+            System.out.println("Error: The file '" + filename + "' is corrupted, exiting...");
+            return;
         }
+        Automaton aut;
+        try {
+            aut = applyConstraints(automatonParser.automaton());
+        } catch (Exception e) {
+            System.out.println("Error: The constraints could not be applied, is one of the constraint files missing?");
+            return;
+        }
+        System.out.println(aut.getShortestExample(true));
     }
 }
