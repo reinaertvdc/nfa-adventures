@@ -1,0 +1,2 @@
+# an automaton accepting only the paths on which at least two treasures are found and, while all treasures are lost when
+# passing through an arc

@@ -56,10 +56,9 @@ public class Automaton {
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
             mStates.put(currentOtherStatesEntry.getKey(), new State(currentOtherStatesEntry.getValue()));
         }
-        for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            State currentOtherState = currentOtherStatesEntry.getValue();
+        for (State currentOtherState : other.mStates.values()) {
             State currentOwnState = mStates.get(currentOtherState.getName());
-            for (Map.Entry<Symbol, Set<State>> currentSymbolEntry: currentOtherState.mDepartingTransitions.entrySet()) {
+            for (Map.Entry<Symbol, Set<State>> currentSymbolEntry : currentOtherState.mDepartingTransitions.entrySet()) {
                 Symbol currentSymbol = currentSymbolEntry.getKey();
                 for (State currentDestination : currentSymbolEntry.getValue()) {
                     currentOwnState.addDepartingTransition(mStates.get(currentDestination.getName()), currentSymbol);
@@ -89,6 +88,32 @@ public class Automaton {
     }
 
     /**
+     * Creates a garbage state an redirects all dead ends in the automaton to this state.
+     *
+     * @return the newly created garbage state
+     */
+    private State addGarbageState() {
+        State garbageState;
+        String garbageStateName = "garbage";
+        if (mStates.get(garbageStateName) != null) {
+            int garbageStateNameSuffix = 2;
+            while (mStates.get(garbageStateName + garbageStateNameSuffix) != null) {
+                garbageStateNameSuffix++;
+            }
+            garbageStateName += garbageStateNameSuffix;
+        }
+        garbageState = new State(garbageStateName);
+        mStates.put(garbageStateName, garbageState);
+        Collection<State> states = mStates.values();
+        for (Symbol currentSymbol : ALPHABET.values()) {
+            states.stream().filter(
+                    currentState -> currentState.getTransitions(currentSymbol).size() < 1).forEach(
+                    currentState -> currentState.addDepartingTransition(garbageState, currentSymbol));
+        }
+        return garbageState;
+    }
+
+    /**
      * Returns an automaton accepting the complement of the language accepted by this automaton.
      *
      * @return an automaton accepting the complement of the language accepted by this automaton
@@ -98,8 +123,7 @@ public class Automaton {
             return toDFA().complement();
         }
         Automaton complement = new Automaton(this);
-        for (Map.Entry<String, State> currentStatesEntry : complement.mStates.entrySet()) {
-            State currentState = currentStatesEntry.getValue();
+        for (State currentState : complement.mStates.values()) {
             currentState.setAcceptState(!currentState.isAcceptState());
         }
         return complement;
@@ -143,8 +167,13 @@ public class Automaton {
         if (mIsDFA) {
             return new Automaton(this);
         }
+        Automaton result = new Automaton(this);
+
         // TODO: 2015-11-16 implement
-        return this;
+
+        result.addGarbageState();
+        result.mIsDFA = true;
+        return result;
     }
 
     /**
@@ -407,6 +436,20 @@ public class Automaton {
          */
         public String getName() {
             return mName;
+        }
+
+        /**
+         * Returns a set of all the states reachable from this state on the given symbol
+         *
+         * @param symbol the transition symbol, or null for transitions allowed without any symbol
+         * @return a set of all the states reachable from this state on the given symbol
+         */
+        public Set<State> getTransitions(Symbol symbol) {
+            Set<State> result = mDepartingTransitions.get(symbol);
+            if (result == null) {
+                result = new HashSet<>();
+            }
+            return result;
         }
 
         @Override

@@ -53,7 +53,10 @@ public class AutomatonParser {
         final String START = "(START)", T_LEFT = "|-", FINAL = "(FINAL)", T_RIGHT = "-|", EPSILON = "$";
         Automaton.Builder builder = new Automaton.Builder();
         for (String currentLine : mSourceFile) {
-            String[] components = currentLine.split("\\s+");
+            String[] components = currentLine.trim().split("\\s+");
+            if (components.length != 3 || components[0].charAt(0) == '#') {
+                continue;
+            }
             if (components[2].equals(FINAL) && components[1].equals(T_RIGHT)) {
                 builder.addAcceptState(components[0]);
             } else if (components[0].equals(START) && components[1].equals(T_LEFT)) {

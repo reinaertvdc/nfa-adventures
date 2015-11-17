@@ -16,7 +16,7 @@ public class Level0 extends Level {
     }
 
     @Override
-    protected final Automaton applyConstraints(Automaton aut) {
+    protected final Automaton applyConstraints(Automaton aut) throws Exception {
         return aut;
     }
 }

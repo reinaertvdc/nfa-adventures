@@ -16,10 +16,10 @@ public class Level1 extends Level {
     }
 
     @Override
-    protected final Automaton applyConstraints(Automaton aut) {
-        aut = aut.intersection(constraintFindAtLeastTwoTreasures());
-        aut = aut.intersection(constraintFindKeyBeforePassingThroughGates());
-        aut = aut.intersection(constraintJumpInRiverWhenPassingDragonWithoutSword());
-        return aut;
+    protected final Automaton applyConstraints(Automaton aut) throws Exception {
+        return aut
+                .intersection(constraintFindAtLeastTwoTreasures())
+                .intersection(constraintFindKeyBeforePassingThroughGates())
+                .intersection(constraintJumpInRiverWhenPassingDragonWithoutSword());
     }
 }

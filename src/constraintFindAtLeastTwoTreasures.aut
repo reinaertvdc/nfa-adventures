@@ -1,0 +1,30 @@
+# an automaton accepting only the paths on which at least two treasures are found
+
+(START) |- t0
+
+t0 A t0
+t0 D t0
+t0 G t0
+t0 K t0
+t0 R t0
+t0 S t0
+
+t1 A t1
+t1 D t1
+t1 G t1
+t1 K t1
+t1 R t1
+t1 S t1
+
+t2 A t2
+t2 D t2
+t2 G t2
+t2 K t2
+t2 R t2
+t2 S t2
+t2 T t2
+
+t0 T t1
+t1 T t2
+
+t2 -| (FINAL)
