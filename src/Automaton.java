@@ -84,7 +84,7 @@ public class Automaton {
      */
     private State includeAutomaton(Automaton other, String statePrefix) {
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            mStates.put(currentOtherStatesEntry.getKey(), new State(statePrefix + currentOtherStatesEntry.getValue()));
+            mStates.put(currentOtherStatesEntry.getKey(), new State(currentOtherStatesEntry.getValue(), statePrefix));
         }
         for (State currentOtherState : other.mStates.values()) {
             State currentOwnState = mStates.get(currentOtherState.getName());
@@ -388,12 +388,13 @@ public class Automaton {
         }
 
         /**
-         * Creates a copy of the given state.
+         * Creates a copy of the given state, prefixing its name with the given prefix.
          *
-         * @param other the state to copy
+         * @param other  the state to copy
+         * @param prefix the prefix of the copy's name
          * @throws NullPointerException if <code>other</code> is a null pointer
          */
-        public State(State other) throws NullPointerException {
+        public State(State other, String prefix) throws NullPointerException {
             if (other == null) {
                 throw new NullPointerException();
             }
