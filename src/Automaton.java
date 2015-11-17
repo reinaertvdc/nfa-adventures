@@ -392,13 +392,13 @@ public class Automaton {
          *
          * @param other  the state to copy
          * @param prefix the prefix of the copy's name
-         * @throws NullPointerException if <code>other</code> is a null pointer
+         * @throws NullPointerException if <code>other</code> or <code>prefix</code> is a null pointer
          */
         public State(State other, String prefix) throws NullPointerException {
             if (other == null) {
                 throw new NullPointerException();
             }
-            mName = other.mName;
+            mName = prefix + other.mName;
             mIsAcceptState = other.mIsAcceptState;
         }
 
