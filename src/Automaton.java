@@ -83,22 +83,26 @@ public class Automaton {
      * @return the start state of the included automaton (which is not marked as the start state of this automaton)
      */
     private State includeAutomaton(Automaton other, String statePrefix) {
+        Map<State, State> otherStateToOwnState = new HashMap<>();
+        int stateName = 0;
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            mStates.put(statePrefix + currentOtherStatesEntry.getKey(),
-                    new State(statePrefix + currentOtherStatesEntry.getKey(), currentOtherStatesEntry.getValue()));
+            String currentOwnStateName = statePrefix + stateName;
+            State currentOwnState = new State(currentOwnStateName, currentOtherStatesEntry.getValue());
+            mStates.put(currentOwnStateName, currentOwnState);
+            otherStateToOwnState.put(currentOtherStatesEntry.getValue(), currentOwnState);
+            stateName++;
         }
         for (State currentOtherState : other.mStates.values()) {
-            State currentOwnState = mStates.get(statePrefix + currentOtherState.getName());
+            State currentOwnState = otherStateToOwnState.get(currentOtherState);
             for (Map.Entry<Symbol, Set<State>> currentSymbolEntry :
                     currentOtherState.mDepartingTransitions.entrySet()) {
                 Symbol currentSymbol = currentSymbolEntry.getKey();
                 for (State currentDestination : currentSymbolEntry.getValue()) {
-                    currentOwnState.addDepartingTransition(
-                            mStates.get(statePrefix + currentDestination.getName()), currentSymbol);
+                    currentOwnState.addDepartingTransition(otherStateToOwnState.get(currentDestination), currentSymbol);
                 }
             }
         }
-        return mStates.get(statePrefix + other.mStartState.getName());
+        return otherStateToOwnState.get(other.mStartState);
     }
 
     /**
@@ -166,8 +170,13 @@ public class Automaton {
      * Prints out this automaton.
      */
     private void print() {
+        System.out.println("+++  (START)  " + mStartState.getName() + "  +++");
         for (State currentState : mStates.values()) {
-            System.out.print(currentState.getName() + "\n    $  ->  ");
+            System.out.print(currentState.getName() + "  ");
+            if (currentState.isAcceptState()) {
+                System.out.print("(FINAL)");
+            }
+            System.out.print("\n    $  ->  ");
             Set<State> currentReachableStates = currentState.getTransitions(null);
             if (currentReachableStates != null) {
                 for (State currentReachableState : currentReachableStates) {
@@ -706,30 +715,33 @@ public class Automaton {
          * @param aut the automaton to convert
          */
         private static void convertToEquivalentWithoutEpsilonTransitions(Automaton aut) {
-            Map<Set<State>, State> epsilonClosuresToMergedState = new HashMap<>();
+            Map<Set<State>, State> epsilonClosureToMergedState = new HashMap<>();
+            Map<State, Set<State>> mergedStateToEpsilonClosure = new HashMap<>();
             Map<State, State> oldStatesToMergedState = new HashMap<>();
             int mergedStateName = 0;
             for (State currentOldState : aut.mStates.values()) {
                 Set<State> epsilonClosure = getEpsilonClosure(currentOldState);
-                State mergedState = epsilonClosuresToMergedState.get(epsilonClosure);
+                State mergedState = epsilonClosureToMergedState.get(epsilonClosure);
                 if (mergedState == null) {
                     mergedState = new State(Integer.toString(mergedStateName), epsilonClosure);
-                    epsilonClosuresToMergedState.put(epsilonClosure, mergedState);
+                    epsilonClosureToMergedState.put(epsilonClosure, mergedState);
+                    mergedStateToEpsilonClosure.put(mergedState, epsilonClosure);
                     mergedStateName++;
                 }
                 oldStatesToMergedState.put(currentOldState, mergedState);
             }
             for (Map.Entry<State, State> currentEntry : oldStatesToMergedState.entrySet()) {
-                for (Map.Entry<Symbol, Set<State>> currentTransitions :
-                        currentEntry.getKey().getDepartingTransitions().entrySet()) {
-                    if (currentTransitions.getKey() == null) {
-                        continue;
+                for (State currentOldState : mergedStateToEpsilonClosure.get(currentEntry.getValue()))
+                    for (Map.Entry<Symbol, Set<State>> currentTransitions :
+                            currentOldState.getDepartingTransitions().entrySet()) {
+                        if (currentTransitions.getKey() == null) {
+                            continue;
+                        }
+                        for (State currentReachableState : currentTransitions.getValue()) {
+                            currentEntry.getValue().addDepartingTransition(
+                                    oldStatesToMergedState.get(currentReachableState), currentTransitions.getKey());
+                        }
                     }
-                    for (State currentReachableState : currentTransitions.getValue()) {
-                        currentEntry.getValue().addDepartingTransition(
-                                oldStatesToMergedState.get(currentReachableState), currentTransitions.getKey());
-                    }
-                }
             }
             aut.mStates.clear();
             for (State currentState : oldStatesToMergedState.values()) {
