@@ -83,8 +83,11 @@ public class Automaton {
      * @return the start state of the included automaton (which is not marked as the start state of this automaton)
      */
     private State includeAutomaton(Automaton other, String statePrefix) {
+        int currentStateName = 0;
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            mStates.put(currentOtherStatesEntry.getKey(), new State(currentOtherStatesEntry.getValue(), statePrefix));
+            mStates.put(currentOtherStatesEntry.getKey(),
+                    new State(statePrefix + currentStateName, currentOtherStatesEntry.getValue()));
+            currentStateName++;
         }
         for (State currentOtherState : other.mStates.values()) {
             State currentOwnState = mStates.get(currentOtherState.getName());
@@ -149,12 +152,28 @@ public class Automaton {
      * @return the requested string, or a null pointer if no such string exists
      */
     public String getShortestExample(Boolean accept) {
-        // TODO: 2015-11-12 implement
-        if (accept) {
-            return null;
-        } else {
-            return null;
+        toDFA();
+        Set<State> reachedStates = new HashSet<>();
+        Queue<State> statesToBeChecked = new LinkedList<>();
+        Queue<String> stringsMatchingStatesToBeChecked = new LinkedList<>();
+        statesToBeChecked.add(mStartState);
+        stringsMatchingStatesToBeChecked.add("");
+        while (!statesToBeChecked.isEmpty()) {
+            State currentState = statesToBeChecked.remove();
+            String currentString = stringsMatchingStatesToBeChecked.remove();
+            if (currentState.isAcceptState() == accept) {
+                return currentString;
+            }
+            reachedStates.add(currentState);
+            for (Symbol currentSymbol : ALPHABET.values()) {
+                State currentReachableState = currentState.getTransitions(currentSymbol).toArray(new State[1])[0];
+                if (!reachedStates.contains(currentReachableState)) {
+                    statesToBeChecked.add(currentReachableState);
+                    stringsMatchingStatesToBeChecked.add(currentString + currentSymbol.toString());
+                }
+            }
         }
+        return null;
     }
 
     /**
@@ -171,21 +190,20 @@ public class Automaton {
     }
 
     /**
-     * Returns a DFA equivalent (accepting the same language) to this automaton.
+     * Returns a DFA equivalent to (accepting the same language as) this automaton.
      *
      * @return a DFA equivalent to this automaton
      */
     private Automaton toDFA() {
-        if (mIsDFA) {
-            return new Automaton(this);
+        return new ToDFAConverter().run(this);
+        // TODO: 2015-11-18 remove
+        /*Map<State, State> mergedStates = getMergedStates(getStatesReachableWithoutSymbol());
+        copyTransitions(mergedStates);
+        Automaton result = new Automaton();
+        for (State currentState : mergedStates.values()) {
+            result.mStates.put(currentState.getName(), currentState);
         }
-        Automaton result = new Automaton(this);
-
-        // TODO: 2015-11-16 implement
-
-        result.addGarbageState();
-        result.mIsDFA = true;
-        return result;
+        result.addGarbageState();*/
     }
 
     /**
@@ -388,18 +406,46 @@ public class Automaton {
         }
 
         /**
-         * Creates a copy of the given state, prefixing its name with the given prefix.
+         * Creates a state with the given name which is a copy of the given state.
          *
-         * @param other  the state to copy
-         * @param prefix the prefix of the copy's name
-         * @throws NullPointerException if <code>other</code> or <code>prefix</code> is a null pointer
+         * @param name  the name of the state
+         * @param other the state to copy
+         * @throws NullPointerException if <code>name</code> or <code>other</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is an empty string
          */
-        public State(State other, String prefix) throws NullPointerException {
-            if (other == null) {
+        public State(String name, State other) throws NullPointerException, IllegalArgumentException {
+            if (name == null || other == null) {
                 throw new NullPointerException();
             }
-            mName = prefix + other.mName;
+            if (name.equals("")) {
+                throw new IllegalArgumentException();
+            }
+            mName = name;
             mIsAcceptState = other.mIsAcceptState;
+        }
+
+        /**
+         * Creates a new state with the given name and makes it an accept state if any of the given states is one.
+         *
+         * @param name   the name of the state
+         * @param states the states to
+         * @throws NullPointerException if <code>name</code> or <code>states</code> is a null pointer
+         * @throws IllegalArgumentException if <code>name</code> is an empty string
+         */
+        public State(String name, Set<State> states) throws NullPointerException, IllegalArgumentException {
+            if (name == null || states == null) {
+                throw new NullPointerException();
+            }
+            if (name.equals("")) {
+                throw new IllegalArgumentException();
+            }
+            mName = name;
+            for (State currentState : states) {
+                if (currentState.mIsAcceptState) {
+                    mIsAcceptState = true;
+                    break;
+                }
+            }
         }
 
         /**
@@ -450,6 +496,15 @@ public class Automaton {
             if (o == null || getClass() != o.getClass()) return false;
             State state = (State) o;
             return mName.equals(state.mName);
+        }
+
+        /**
+         * Returns a set of symbols mapped to the set of states they enable the transition to from this state.
+         *
+         * @return a set of symbols mapped to the set of states they enable the transition to from this state
+         */
+        public Map<Symbol, Set<State>> getDepartingTransitions() {
+            return mDepartingTransitions;
         }
 
         /**
@@ -561,6 +616,118 @@ public class Automaton {
         @Override
         public String toString() {
             return mString;
+        }
+    }
+
+    /**
+     * Converts an automaton to a DFA.
+     */
+    private static class ToDFAConverter {
+        /**
+         * Returns the epsilon closure of the given state.
+         *
+         * @param state the state to get the epsilon closure of
+         */
+        private static Set<State> getEpsilonClosure(State state) {
+            Set<State> epsilonClosure = new HashSet<>();
+            buildEpsilonClosure(state, epsilonClosure);
+            return epsilonClosure;
+        }
+
+        /**
+         * Builds the epsilon closure of the given state by recursively following epsilon transitions.
+         *
+         * @param state          the state whose epsilon closure to build
+         * @param epsilonClosure the set of states to build the epsilon closure in
+         */
+        private static void buildEpsilonClosure(State state, Set<State> epsilonClosure) {
+            if (epsilonClosure.contains(state)) {
+                return;
+            }
+            epsilonClosure.add(state);
+            Set<State> statesDirectlyReachableByEpsilonTransition = state.getTransitions(null);
+            if (statesDirectlyReachableByEpsilonTransition == null) {
+                return;
+            }
+            for (State currentState : statesDirectlyReachableByEpsilonTransition) {
+                buildEpsilonClosure(currentState, epsilonClosure);
+            }
+        }
+
+        /**
+         * Converts the given automaton to an equivalent where every state has exactly one transition for every symbol
+         * in the alphabet, without adding any new epsilon transitions.
+         *
+         * @param aut the automaton to convert
+         */
+        private void convertToEquivalentWithOneTransitionPerSymbol(Automaton aut) {
+            // TODO: 2015-11-18 implement
+        }
+
+        /**
+         * Converts the given automaton to an equivalent with all epsilon transitions removed.
+         *
+         * @param aut the automaton to convert
+         */
+        private void convertToEquivalentWithoutEpsilonTransitions(Automaton aut) {
+            Map<Set<State>, State> epsilonClosuresToMergedState = new HashMap<>();
+            Map<State, State> oldStatesToMergedState = new HashMap<>();
+            int mergedStateName = 0;
+            for (State currentOldState : aut.mStates.values()) {
+                Set<State> epsilonClosure = getEpsilonClosure(currentOldState);
+                State mergedState = epsilonClosuresToMergedState.get(epsilonClosure);
+                if (mergedState == null) {
+                    mergedState = new State(Integer.toString(mergedStateName), epsilonClosure);
+                    epsilonClosuresToMergedState.put(epsilonClosure, mergedState);
+                    mergedStateName++;
+                }
+                oldStatesToMergedState.put(currentOldState, mergedState);
+            }
+            for (Map.Entry<State, State> currentEntry : oldStatesToMergedState.entrySet()) {
+                for (Map.Entry<Symbol, Set<State>> currentTransitions :
+                        currentEntry.getKey().getDepartingTransitions().entrySet()) {
+                    if (currentTransitions.getKey() == null) {
+                        continue;
+                    }
+                    for (State currentReachableState : currentTransitions.getValue()) {
+                        currentEntry.getValue().addDepartingTransition(
+                                oldStatesToMergedState.get(currentReachableState), currentTransitions.getKey());
+                    }
+                }
+            }
+            Automaton result = new Automaton();
+            for (State currentState : oldStatesToMergedState.values()) {
+                result.mStates.put(currentState.getName(), currentState);
+            }
+            result.mStartState = oldStatesToMergedState.get(aut.mStartState);
+        }
+
+        /**
+         * Converts the given automaton to a DFA.
+         *
+         * @param aut the automaton to convert
+         * @return a DFA version of the given automaton
+         */
+        public Automaton run(Automaton aut) {
+            if (aut.mIsDFA) {
+                return aut;
+            }
+            convertToEquivalentWithoutEpsilonTransitions(aut);
+            convertToEquivalentWithOneTransitionPerSymbol(aut);
+            aut.mIsDFA = true;
+            return aut;
+        }
+
+        /**
+         * Recursively follows all transitions departing from the given state, converting the found paths to their DFA
+         * equivalent and adding them to <code>mResult</code>.
+         *
+         * @param state the state from which to start recursively following all transitions
+         * @return the state in <code>mResult</code> corresponding to the given state
+         */
+        private State toDFA(State state) {
+            // TODO: 2015-11-18 implement
+            return null;
         }
     }
 }
