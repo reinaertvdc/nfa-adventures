@@ -103,32 +103,6 @@ public class Automaton {
     }
 
     /**
-     * Creates a garbage state an redirects all dead ends in the automaton to this state.
-     *
-     * @return the newly created garbage state
-     */
-    private State addGarbageState() {
-        State garbageState;
-        String garbageStateName = "garbage";
-        if (mStates.get(garbageStateName) != null) {
-            int garbageStateNameSuffix = 2;
-            while (mStates.get(garbageStateName + garbageStateNameSuffix) != null) {
-                garbageStateNameSuffix++;
-            }
-            garbageStateName += garbageStateNameSuffix;
-        }
-        garbageState = new State(garbageStateName);
-        mStates.put(garbageStateName, garbageState);
-        Collection<State> states = mStates.values();
-        for (Symbol currentSymbol : ALPHABET.values()) {
-            states.stream().filter(
-                    currentState -> currentState.getTransitions(currentSymbol).size() < 1).forEach(
-                    currentState -> currentState.addDepartingTransition(garbageState, currentSymbol));
-        }
-        return garbageState;
-    }
-
-    /**
      * Returns an automaton accepting the complement of the language accepted by this automaton.
      *
      * @return an automaton accepting the complement of the language accepted by this automaton
@@ -190,20 +164,39 @@ public class Automaton {
     }
 
     /**
+     * Prints out this automaton.
+     */
+    private void print() {
+        for (State currentState : mStates.values()) {
+            System.out.print(currentState.getName() + "\n    $  ->  ");
+            Set<State> currentReachableStates = currentState.getTransitions(null);
+            if (currentReachableStates != null) {
+                for (State currentReachableState : currentReachableStates) {
+                    System.out.print(currentReachableState.getName() + " ");
+                }
+            }
+            System.out.println();
+            for (Symbol currentSymbol : ALPHABET.values()) {
+                System.out.print("    " + currentSymbol + "  ->  ");
+                currentReachableStates = currentState.getTransitions(currentSymbol);
+                if (currentReachableStates != null) {
+                    for (State currentReachableState : currentReachableStates) {
+                        System.out.print(currentReachableState.getName() + " ");
+                    }
+                }
+                System.out.println();
+            }
+        }
+        System.out.println();
+    }
+
+    /**
      * Returns a DFA equivalent to (accepting the same language as) this automaton.
      *
      * @return a DFA equivalent to this automaton
      */
     private Automaton toDFA() {
         return new ToDFAConverter().run(this);
-        // TODO: 2015-11-18 remove
-        /*Map<State, State> mergedStates = getMergedStates(getStatesReachableWithoutSymbol());
-        copyTransitions(mergedStates);
-        Automaton result = new Automaton();
-        for (State currentState : mergedStates.values()) {
-            result.mStates.put(currentState.getName(), currentState);
-        }
-        result.addGarbageState();*/
     }
 
     /**
@@ -474,7 +467,7 @@ public class Automaton {
          * @param symbols     the symbols allowing the transition
          * @throws NullPointerException if <code>destination</code> or <code>symbols</code> is a null pointer
          */
-        public void addDepartingTransitions(State destination, Set<Symbol> symbols) throws NullPointerException {
+        public void addDepartingTransitions(State destination, Collection<Symbol> symbols) throws NullPointerException {
             if (destination == null || symbols == null) {
                 throw new NullPointerException();
             }
@@ -624,17 +617,6 @@ public class Automaton {
      */
     private static class ToDFAConverter {
         /**
-         * Returns the epsilon closure of the given state.
-         *
-         * @param state the state to get the epsilon closure of
-         */
-        private static Set<State> getEpsilonClosure(State state) {
-            Set<State> epsilonClosure = new HashSet<>();
-            buildEpsilonClosure(state, epsilonClosure);
-            return epsilonClosure;
-        }
-
-        /**
          * Builds the epsilon closure of the given state by recursively following epsilon transitions.
          *
          * @param state          the state whose epsilon closure to build
@@ -655,13 +637,68 @@ public class Automaton {
         }
 
         /**
+         * Returns the epsilon closure of the given state.
+         *
+         * @param state the state to get the epsilon closure of
+         */
+        private static Set<State> getEpsilonClosure(State state) {
+            Set<State> epsilonClosure = new HashSet<>();
+            buildEpsilonClosure(state, epsilonClosure);
+            return epsilonClosure;
+        }
+
+        /**
          * Converts the given automaton to an equivalent where every state has exactly one transition for every symbol
          * in the alphabet, without adding any new epsilon transitions.
          *
          * @param aut the automaton to convert
          */
-        private void convertToEquivalentWithOneTransitionPerSymbol(Automaton aut) {
-            // TODO: 2015-11-18 implement
+        private static void convertToEquivalentWithOneTransitionPerSymbol(Automaton aut) {
+            Map<Set<State>, State> oldStatesToNewState = new HashMap<>();
+            Map<State, Set<State>> newStateToOldStates = new HashMap<>();
+            Queue<State> newStatesToCheck = new LinkedList<>();
+            State garbageState = new State("garbage");
+            garbageState.addDepartingTransitions(garbageState, ALPHABET.values());
+            State startState = new State("start");
+            startState.setAcceptState(aut.mStartState.isAcceptState());
+            newStateToOldStates.put(startState, new HashSet<>(Arrays.asList(new State[]{aut.mStartState})));
+            oldStatesToNewState.put(newStateToOldStates.get(startState), startState);
+            newStatesToCheck.add(startState);
+            int newStateName = 0;
+            while (!newStatesToCheck.isEmpty()) {
+                State currentNewState = newStatesToCheck.remove();
+                Set<State> currentOldStates = newStateToOldStates.get(currentNewState);
+                for (Symbol currentSymbol : ALPHABET.values()) {
+                    Set<State> currentReachableStates = new HashSet<>();
+                    for (State currentOldState : currentOldStates) {
+                        Set<State> currentTransitions = currentOldState.getTransitions(currentSymbol);
+                        if (currentTransitions != null) {
+                            currentReachableStates.addAll(currentTransitions);
+                        }
+                    }
+                    if (!currentReachableStates.isEmpty()) {
+                        State currentNewReachableState = oldStatesToNewState.get(currentReachableStates);
+                        if (currentNewReachableState == null) {
+                            currentNewReachableState =
+                                    new State(Integer.toString(newStateName), currentReachableStates);
+                            newStateToOldStates.put(currentNewReachableState, currentReachableStates);
+                            oldStatesToNewState.put(
+                                    newStateToOldStates.get(currentNewReachableState), currentNewReachableState);
+                            newStatesToCheck.add(currentNewReachableState);
+                            newStateName++;
+                        }
+                        currentNewState.addDepartingTransition(currentNewReachableState, currentSymbol);
+                    } else {
+                        currentNewState.addDepartingTransition(garbageState, currentSymbol);
+                    }
+                }
+            }
+            aut.mStates.clear();
+            for (State currentState : newStateToOldStates.keySet()) {
+                aut.mStates.put(currentState.getName(), currentState);
+            }
+            aut.mStates.put(garbageState.getName(), garbageState);
+            aut.mStartState = oldStatesToNewState.get(new HashSet<>(Arrays.asList(new State[]{aut.mStartState})));
         }
 
         /**
@@ -669,7 +706,7 @@ public class Automaton {
          *
          * @param aut the automaton to convert
          */
-        private void convertToEquivalentWithoutEpsilonTransitions(Automaton aut) {
+        private static void convertToEquivalentWithoutEpsilonTransitions(Automaton aut) {
             Map<Set<State>, State> epsilonClosuresToMergedState = new HashMap<>();
             Map<State, State> oldStatesToMergedState = new HashMap<>();
             int mergedStateName = 0;
@@ -695,11 +732,11 @@ public class Automaton {
                     }
                 }
             }
-            Automaton result = new Automaton();
+            aut.mStates.clear();
             for (State currentState : oldStatesToMergedState.values()) {
-                result.mStates.put(currentState.getName(), currentState);
+                aut.mStates.put(currentState.getName(), currentState);
             }
-            result.mStartState = oldStatesToMergedState.get(aut.mStartState);
+            aut.mStartState = oldStatesToMergedState.get(aut.mStartState);
         }
 
         /**
@@ -716,18 +753,6 @@ public class Automaton {
             convertToEquivalentWithOneTransitionPerSymbol(aut);
             aut.mIsDFA = true;
             return aut;
-        }
-
-        /**
-         * Recursively follows all transitions departing from the given state, converting the found paths to their DFA
-         * equivalent and adding them to <code>mResult</code>.
-         *
-         * @param state the state from which to start recursively following all transitions
-         * @return the state in <code>mResult</code> corresponding to the given state
-         */
-        private State toDFA(State state) {
-            // TODO: 2015-11-18 implement
-            return null;
         }
     }
 }
