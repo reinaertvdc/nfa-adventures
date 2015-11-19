@@ -83,19 +83,18 @@ public class Automaton {
      * @return the start state of the included automaton (which is not marked as the start state of this automaton)
      */
     private State includeAutomaton(Automaton other, String statePrefix) {
-        int currentStateName = 0;
         for (Map.Entry<String, State> currentOtherStatesEntry : other.mStates.entrySet()) {
-            mStates.put(currentOtherStatesEntry.getKey(),
-                    new State(statePrefix + currentStateName, currentOtherStatesEntry.getValue()));
-            currentStateName++;
+            mStates.put(statePrefix + currentOtherStatesEntry.getKey(),
+                    new State(statePrefix + currentOtherStatesEntry.getKey(), currentOtherStatesEntry.getValue()));
         }
         for (State currentOtherState : other.mStates.values()) {
-            State currentOwnState = mStates.get(currentOtherState.getName());
+            State currentOwnState = mStates.get(statePrefix + currentOtherState.getName());
             for (Map.Entry<Symbol, Set<State>> currentSymbolEntry :
                     currentOtherState.mDepartingTransitions.entrySet()) {
                 Symbol currentSymbol = currentSymbolEntry.getKey();
                 for (State currentDestination : currentSymbolEntry.getValue()) {
-                    currentOwnState.addDepartingTransition(mStates.get(currentDestination.getName()), currentSymbol);
+                    currentOwnState.addDepartingTransition(
+                            mStates.get(statePrefix + currentDestination.getName()), currentSymbol);
                 }
             }
         }
