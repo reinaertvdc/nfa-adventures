@@ -1,2 +1,24 @@
 # an automaton accepting only the paths on which a river is passed immediately after every dragon when a sword in not
 # found first
+
+(START) |- s0
+
+s0 A s0
+s0 G s0
+s0 K s0
+s0 R s0
+s0 T s0
+
+s1 A s1
+s1 D s1
+s1 G s1
+s1 K s1
+s1 R s1
+s1 S s1
+s1 T s1
+
+s0 S s1
+s0 D f
+f R s0
+
+s0 s1 -| (FINAL)
