@@ -1,1 +1,21 @@
 # an automaton accepting only the paths on which a key is found before passing through any gates
+
+(START) |- k0
+
+k0 A k0
+k0 D k0
+k0 R k0
+k0 S k0
+k0 T k0
+
+k1 A k1
+k1 D k1
+k1 G k1
+k1 K k1
+k1 R k1
+k1 S k1
+k1 T k1
+
+k0 K k1
+
+k0 k1 -| (FINAL)
