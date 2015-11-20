@@ -16,7 +16,6 @@ t1 K t1
 t1 R t1
 t1 S t1
 
-t2 A t0
 t2 D t2
 t2 G t2
 t2 K t2
@@ -25,7 +24,9 @@ t2 S t2
 t2 T t2
 
 t0 T t1
-t1 A t0
 t1 T t2
+
+t1 A t0
+t2 A t0
 
 t2 -| (FINAL)

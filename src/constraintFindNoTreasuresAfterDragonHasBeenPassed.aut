@@ -16,6 +16,17 @@ d1 K d1
 d1 R d1
 d1 S d1
 
+g A g
+g D g
+g G g
+g K g
+g R g
+g S g
+g T g
+
 d0 D d1
 
-d0 d1 -| (FINAL)
+d1 T g
+
+d0 -| (FINAL)
+d1 -| (FINAL)

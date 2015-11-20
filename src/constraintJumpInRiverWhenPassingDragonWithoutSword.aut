@@ -17,8 +17,26 @@ s1 R s1
 s1 S s1
 s1 T s1
 
+f A g
+f D g
+f G g
+f K g
+f S g
+f T g
+
+g A g
+g D g
+g G g
+g K g
+g R g
+g S g
+g T g
+
 s0 S s1
+
 s0 D f
+
 f R s0
 
-s0 s1 -| (FINAL)
+s0 -| (FINAL)
+s1 -| (FINAL)

@@ -16,6 +16,17 @@ k1 R k1
 k1 S k1
 k1 T k1
 
+g A g
+g D g
+g G g
+g K g
+g R g
+g S g
+g T g
+
 k0 K k1
 
-k0 k1 -| (FINAL)
+k0 G g
+
+k0 -| (FINAL)
+k1 -| (FINAL)
