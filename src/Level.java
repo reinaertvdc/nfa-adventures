@@ -10,7 +10,6 @@ public abstract class Level {
      *
      * @param aut the automaton to apply the constraints to
      * @return an automaton equal to the given automaton with the constraints of this level applied to it
-     * @throws Exception if the constraints could not be applied
      */
     protected abstract Automaton applyConstraints(Automaton aut);
 
@@ -168,6 +167,6 @@ public abstract class Level {
             System.out.println("Error: The file '" + filename + "' seems to be corrupted.");
             return;
         }
-        System.out.println(applyConstraints(automatonParser.automaton()).getShortestExample(true));
+        System.out.print(applyConstraints(automatonParser.automaton()).getShortestExample(true));
     }
 }
