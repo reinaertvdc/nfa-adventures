@@ -5,168 +5,73 @@
  * @author Reinaert Van de Cruys
  */
 public abstract class Level {
+    protected static final String FIND_AT_LEAST_TWO_TREASURES =
+            "constraintFindAtLeastTwoTreasures.aut";
+    protected static final String FIND_AT_LEAST_TWO_TREASURES_AND_LOSE_ALL_WHEN_PASSING_THROUGH_ARC =
+            "constraintFindAtLeastTwoTreasuresAndLoseAllWhenPassingThroughArc.aut";
+    protected static final String FIND_KEY_BEFORE_PASSING_THROUGH_GATES =
+            "constraintFindKeyBeforePassingThroughGates.aut";
+    protected static final String FIND_NO_TREASURES_AFTER_DRAGON_HAS_BEEN_PASSED =
+            "constraintFindNoTreasuresAfterDragonHasBeenPassed.aut";
+    protected static final String JUMP_IN_RIVER_WHEN_PASSING_DRAGON_WITHOUT_SWORD =
+            "constraintJumpInRiverWhenPassingDragonWithoutSword.aut";
+
     /**
      * Returns an automaton equal to the given automaton with the constraints of this level applied to it.
      *
      * @param aut the automaton to apply the constraints to
      * @return an automaton equal to the given automaton with the constraints of this level applied to it
+     * @throws Exception if (one of) the constraints could not be loaded or parsed
      */
-    protected abstract Automaton applyConstraints(Automaton aut);
+    protected abstract Automaton applyConstraints(Automaton aut) throws Exception;
 
     /**
-     * Returns an automaton accepting only the paths on which at least two treasures are found.
+     * Returns the automaton corresponding to the given <code>.aut</code> file.
      *
-     * @return an automaton representing the constraint
+     * @param filename the name of the file to read
+     * @return the automaton corresponding to the given file
+     * @throws Exception if the file could not be read or is corrupted
      */
-    protected final Automaton constraintFindAtLeastTwoTreasures() {
+    protected final Automaton loadAutomaton(String filename) throws Exception {
+        // attempt to read in the given file
+        AutomatonParser automatonParser;
         try {
-            AutomatonParser automatonParser = new AutomatonParser("constraintFindAtLeastTwoTreasures.aut");
-            automatonParser.parse();
-            return automatonParser.automaton();
+            automatonParser = new AutomatonParser(filename);
         } catch (Exception e) {
-            Automaton.Builder builder = new Automaton.Builder();
-            String t0 = "t0", t1 = "t1", t2 = "t2";
-            builder.setStartState(t0);
-            builder.addTransition(t0, t1, Automaton.TREASURE);
-            builder.addTransition(t1, t2, Automaton.TREASURE);
-            builder.addTransitionsOnRemainingSymbols(t0, t0);
-            builder.addTransitionsOnRemainingSymbols(t1, t1);
-            builder.addTransitionsOnRemainingSymbols(t2, t2);
-            builder.addAcceptState(t2);
-            return builder.getResult();
+            System.out.println("Error: The file '" + filename + "' cannot be read.");
+            throw e;
         }
-    }
-
-    /**
-     * Returns an automaton accepting only the paths on which at least two treasures are found and, while all treasures
-     * are lost when passing through an arc.
-     *
-     * @return an automaton representing the constraint
-     */
-    protected final Automaton constraintFindAtLeastTwoTreasuresAndLoseAllWhenPassingThroughArc() {
+        // attempt to parse the file
         try {
-            AutomatonParser automatonParser =
-                    new AutomatonParser("constraintFindAtLeastTwoTreasuresAndLoseAllWhenPassingThroughArc.aut");
             automatonParser.parse();
-            return automatonParser.automaton();
         } catch (Exception e) {
-            Automaton.Builder builder = new Automaton.Builder();
-            String t0 = "t0", t1 = "t1", t2 = "t2";
-            builder.setStartState(t0);
-            builder.addTransition(t0, t1, Automaton.TREASURE);
-            builder.addTransition(t1, t2, Automaton.TREASURE);
-            builder.addTransition(t1, t0, Automaton.ARC);
-            builder.addTransition(t2, t0, Automaton.ARC);
-            builder.addTransitionsOnRemainingSymbols(t0, t0);
-            builder.addTransitionsOnRemainingSymbols(t1, t1);
-            builder.addTransitionsOnRemainingSymbols(t2, t2);
-            builder.addAcceptState(t2);
-            return builder.getResult();
+            System.out.println("Error: The file '" + filename + "' seems to be corrupted.");
+            throw e;
         }
-    }
-
-    /**
-     * Returns an automaton accepting only the paths on which a key is found before passing through any gates.
-     *
-     * @return an automaton representing the constraint
-     */
-    protected final Automaton constraintFindKeyBeforePassingThroughGates() {
-        try {
-            AutomatonParser automatonParser = new AutomatonParser("constraintFindKeyBeforePassingThroughGates.aut");
-            automatonParser.parse();
-            return automatonParser.automaton();
-        } catch (Exception e) {
-            Automaton.Builder builder = new Automaton.Builder();
-            String k0 = "k0", k1 = "k1";
-            builder.setStartState(k0);
-            builder.addTransition(k0, k1, Automaton.KEY);
-            builder.addTransitionsOnRemainingSymbols(k0, k0);
-            builder.addTransitionsOnRemainingSymbols(k1, k1);
-            builder.removeTransitionsOnSymbol(k0, Automaton.GATE);
-            builder.addAcceptState(k0);
-            builder.addAcceptState(k1);
-            return builder.getResult();
-        }
-    }
-
-    /**
-     * Returns an automaton accepting only the paths on which no treasures are found once a dragon has been passed.
-     *
-     * @return an automaton representing the constraint
-     */
-    protected final Automaton constraintFindNoTreasuresAfterDragonHasBeenPassed() {
-        try {
-            AutomatonParser automatonParser =
-                    new AutomatonParser("constraintFindNoTreasuresAfterDragonHasBeenPassed.aut");
-            automatonParser.parse();
-            return automatonParser.automaton();
-        } catch (Exception e) {
-            Automaton.Builder builder = new Automaton.Builder();
-            String d0 = "d0", d1 = "d1";
-            builder.setStartState(d0);
-            builder.addTransition(d0, d1, Automaton.DRAGON);
-            builder.addTransitionsOnRemainingSymbols(d0, d0);
-            builder.addTransitionsOnRemainingSymbols(d1, d1);
-            builder.removeTransitionsOnSymbol(d1, Automaton.TREASURE);
-            builder.addAcceptState(d0);
-            builder.addAcceptState(d1);
-            return builder.getResult();
-        }
-    }
-
-    /**
-     * Returns an automaton accepting only the paths on which a river is passed immediately after every dragon when a
-     * sword in not found first.
-     *
-     * @return an automaton representing the constraint
-     */
-    protected final Automaton constraintJumpInRiverWhenPassingDragonWithoutSword() {
-        try {
-            AutomatonParser automatonParser =
-                    new AutomatonParser("constraintJumpInRiverWhenPassingDragonWithoutSword.aut");
-            automatonParser.parse();
-            return automatonParser.automaton();
-        } catch (Exception e) {
-            Automaton.Builder builder = new Automaton.Builder();
-            String s0 = "s0", s1 = "s1", f = "f";
-            builder.setStartState(s0);
-            builder.addTransition(s0, s1, Automaton.SWORD);
-            builder.addTransition(s0, f, Automaton.DRAGON);
-            builder.addTransition(f, s0, Automaton.RIVER);
-            builder.addTransitionsOnRemainingSymbols(s0, s0);
-            builder.addTransitionsOnRemainingSymbols(s1, s1);
-            builder.addAcceptState(s0);
-            builder.addAcceptState(s1);
-            return builder.getResult();
-        }
+        // return the finished automaton
+        return automatonParser.automaton();
     }
 
     /**
      * Runs this level with the given arguments.
      *
-     * @param args the arguments, of which the first one must be the filename of the '.aut' file representing the
-     *             automaton to check, any other arguments are ignored
+     * @param args the arguments, of which the first one can be the filename of the <code>.aut</code> file representing
+     *             the automaton to check, any other arguments are ignored
      */
     protected final void run(String[] args) {
+        // if no filename is given (as the first command line argument), default to 'adventure.aut'
         String filename;
         if (args.length >= 1) {
             filename = args[0];
         } else {
             filename = "adventure.aut";
         }
-        AutomatonParser automatonParser;
+        // load the automaton, apply the constraints and print the shortest accepted string
         try {
-            automatonParser = new AutomatonParser(filename);
+            Automaton aut = loadAutomaton(filename);
+            System.out.print(applyConstraints(aut).getShortestExample(true));
         } catch (Exception e) {
-            System.out.println("Error: The file '" + filename + "' cannot be read, is the path correct?");
-            return;
+            // loadAutomaton already prints an error, no need to do anything here
         }
-        try {
-            automatonParser.parse();
-        } catch (Exception e) {
-            System.out.println("Error: The file '" + filename + "' seems to be corrupted.");
-            return;
-        }
-        System.out.print(applyConstraints(automatonParser.automaton()).getShortestExample(true));
     }
 }
