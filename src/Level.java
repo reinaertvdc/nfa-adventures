@@ -69,7 +69,7 @@ public abstract class Level {
         // load the automaton, apply the constraints and print the shortest accepted string
         try {
             Automaton aut = loadAutomaton(filename);
-            System.out.print(applyConstraints(aut).getShortestExample(true));
+            System.out.println(applyConstraints(aut).getShortestExample(true));
         } catch (Exception e) {
             // loadAutomaton already prints an error, no need to do anything here
         }

@@ -81,49 +81,7 @@ public class Automaton {
      * @return an automaton accepting the intersection of the languages accepted by this and the given automaton
      */
     public Automaton intersection(Automaton aut) {
-        // TODO: 2015-11-27 test
-        // TODO: 2015-11-27 split into help methods
-        if (aut == null) {
-            return null;
-        }
-        Map<State, Map<State, State>> oldStatesToNewState = new HashMap<>();
-        Automaton intersection = new Automaton();
-        // create the states of the cross product in the new automaton
-        for (State thisState : mStates) {
-            Map<State, State> map = new HashMap<>();
-            oldStatesToNewState.put(thisState, map);
-            for (State otherState : aut.mStates) {
-                State newState = new State(thisState, otherState);
-                map.put(otherState, newState);
-                intersection.mStates.add(newState);
-            }
-        }
-        // create the transitions of the cross product in the new automaton
-        for (State thisState : mStates) {
-            for (State otherState : aut.mStates) {
-                State newState = oldStatesToNewState.get(thisState).get(otherState);
-                // create the transitions on all symbols in the alphabet
-                for (Symbol symbol : ALPHABET.values()) {
-                    for (State thisReachableState : thisState.getTransitions(symbol)) {
-                        for (State otherReachableState : otherState.getTransitions(symbol)) {
-                            newState.addDepartingTransition(
-                                    oldStatesToNewState.get(thisReachableState).get(otherReachableState), symbol);
-                        }
-                    }
-                }
-                // create the epsilon transitions
-                for (State thisReachableState : thisState.getTransitions(null)) {
-                    newState.addDepartingTransition(oldStatesToNewState.get(thisReachableState).get(otherState), null);
-                }
-                for (State otherReachableState : otherState.getTransitions(null)) {
-                    newState.addDepartingTransition(oldStatesToNewState.get(thisState).get(otherReachableState), null);
-                }
-            }
-        }
-        // set the start state of the new automaton
-        intersection.mStartState = oldStatesToNewState.get(mStartState).get(aut.mStartState);
-        // return the finished automaton
-        return intersection;
+        return new IntersectionTaker(this).intersection(aut);
     }
 
     /**
@@ -232,6 +190,107 @@ public class Automaton {
         }
     }
 
+    private static class IntersectionTaker {
+        /**
+         * the automaton on which this intersection taker works
+         */
+        private final Automaton mAutomaton;
+        /**
+         * the automaton with which the intersection is taken
+         */
+        private Automaton mOther;
+        /**
+         * the automaton containing the result of this intersection taker
+         */
+        private Automaton mIntersection;
+        /**
+         * the states of the intersection, indexed by the two states from which they are created
+         */
+        private Map<State, Map<State, State>> mOldStatesToNewState;
+
+        /**
+         * Creates a new intersection taker that works on the given automaton.
+         *
+         * @param aut the automaton to work on
+         * @throws NullPointerException if <code>aut</code> is a null pointer
+         */
+        public IntersectionTaker(Automaton aut) throws NullPointerException {
+            mAutomaton = aut;
+        }
+
+        /**
+         * Creates the states of the cross product in the intersection automaton.
+         */
+        private void createCrossProductStates() {
+            for (State thisState : mAutomaton.mStates) {
+                Map<State, State> map = new HashMap<>();
+                mOldStatesToNewState.put(thisState, map);
+                for (State otherState : mOther.mStates) {
+                    State newState = new State(thisState, otherState);
+                    map.put(otherState, newState);
+                    mIntersection.mStates.add(newState);
+                }
+            }
+        }
+
+        /**
+         * Creates the transitions of the cross product in the intersection automaton.
+         */
+        private void createCrossProductTransitions() {
+            // create the transitions of the cross product in the new automaton
+            for (State thisState : mAutomaton.mStates) {
+                for (State otherState : mOther.mStates) {
+                    State newState = mOldStatesToNewState.get(thisState).get(otherState);
+                    // create the transitions on all symbols in the alphabet
+                    createCrossProductSymbolTransitions(newState, thisState, otherState);
+                    // create the epsilon transitions
+                    createCrossProductEpsilonTransitions(newState, thisState, otherState);
+                    createCrossProductEpsilonTransitions(newState, otherState, thisState);
+                }
+            }
+        }
+
+        private void createCrossProductSymbolTransitions(State newState, State state1, State state2) {
+            for (Symbol symbol : ALPHABET.values()) {
+                for (State thisReachableState : state1.getTransitions(symbol)) {
+                    for (State otherReachableState : state2.getTransitions(symbol)) {
+                        newState.addDepartingTransition(
+                                mOldStatesToNewState.get(thisReachableState).get(otherReachableState), symbol);
+                    }
+                }
+            }
+        }
+
+        private void createCrossProductEpsilonTransitions(State newState, State state1, State state2) {
+            for (State thisReachableState : state1.getTransitions(null)) {
+                newState.addDepartingTransition(mOldStatesToNewState.get(thisReachableState).get(state2), null);
+            }
+        }
+
+        /**
+         * Returns an automaton accepting the intersection of the languages accepted by the given automaton and the
+         * automaton on which this intersection taker is working.
+         *
+         * @param aut the automaton accepting the language to take the intersection with
+         * @return an automaton accepting the intersection of the languages
+         */
+        public Automaton intersection(Automaton aut) {
+            if (aut == null) {
+                return null;
+            }
+            mOther = aut;
+            mOldStatesToNewState = new HashMap<>();
+            mIntersection = new Automaton();
+            // create the cross product in the intersection automaton
+            createCrossProductStates();
+            createCrossProductTransitions();
+            // set the start state of the intersection automaton
+            mIntersection.mStartState = mOldStatesToNewState.get(mAutomaton.mStartState).get(aut.mStartState);
+            // return the finished automaton
+            return mIntersection;
+        }
+    }
+
     /**
      * Finds the shortest string that is (not) accepted by an automaton.
      */
@@ -304,12 +363,15 @@ public class Automaton {
         }
 
         /**
-         * Checks whether the given state or its epsilon closure contains the given kind of state, and if not, adds
+         * Checks whether the epsilon closure of the given state contains the given kind of state, and if not, adds all
+         * states directly reachable to the queue of states to be checked if they haven't been checked already.
          *
-         * @param state
-         * @param currentString
-         * @param accept
-         * @return
+         * @param state         the state whose epsilon closure to analyze
+         * @param currentString the string used to reach the given state
+         * @param accept        <code>true</code> to look for an accept state, <code>false</code> to look for a state
+         *                      that is not an accept state
+         * @return <code>true</code> if the epsilon closure of the given state contains at least one state of the given
+         * kinde, <code>false</code> otherwise
          */
         private boolean checkEpsilonClosure(State state, String currentString, boolean accept) {
             // if we can reach the kind of state we're looking for using only epsilon transitions, return true
