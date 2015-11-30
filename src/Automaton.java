@@ -222,10 +222,13 @@ public class Automaton {
          * Creates the states of the cross product in the intersection automaton.
          */
         private void createCrossProductStates() {
+            // run over every state of one of the source automata
             for (State thisState : mAutomaton.mStates) {
                 Map<State, State> map = new HashMap<>();
                 mOldStatesToNewState.put(thisState, map);
+                // run over every state of the remaining source automaton
                 for (State otherState : mOther.mStates) {
+                    // create a new state from the two source states and add it to the intersection automaton
                     State newState = new State(thisState, otherState);
                     map.put(otherState, newState);
                     mIntersection.mStates.add(newState);
@@ -237,23 +240,34 @@ public class Automaton {
          * Creates the transitions of the cross product in the intersection automaton.
          */
         private void createCrossProductTransitions() {
-            // create the transitions of the cross product in the new automaton
+            // run over every combination of a state of both source automata
             for (State thisState : mAutomaton.mStates) {
                 for (State otherState : mOther.mStates) {
+                    // get the new state corresponding to the current combination of states
                     State newState = mOldStatesToNewState.get(thisState).get(otherState);
-                    // create the transitions on all symbols in the alphabet
+                    // create the transitions on all symbols in the alphabet for the current state
                     createCrossProductSymbolTransitions(newState, thisState, otherState);
-                    // create the epsilon transitions
+                    // create the epsilon transitions for the current state
                     createCrossProductEpsilonTransitions(newState, thisState, otherState);
-                    createCrossProductEpsilonTransitions(newState, otherState, thisState);
                 }
             }
         }
 
-        private void createCrossProductSymbolTransitions(State newState, State state1, State state2) {
+        /**
+         * Creates the transitions on symbols of the cross product in the intersection automaton for the given
+         * combination of states.
+         *
+         * @param newState   the state to create the transitions for
+         * @param thisState  the source state of the new state from the automaton on which this intersection taker works
+         * @param otherState the source state of the new state from the other automaton
+         */
+        private void createCrossProductSymbolTransitions(State newState, State thisState, State otherState) {
+            // run over every symbol in the alphabet
             for (Symbol symbol : ALPHABET.values()) {
-                for (State thisReachableState : state1.getTransitions(symbol)) {
-                    for (State otherReachableState : state2.getTransitions(symbol)) {
+                // run over every combination of transitions on the current symbol
+                for (State thisReachableState : thisState.getTransitions(symbol)) {
+                    for (State otherReachableState : otherState.getTransitions(symbol)) {
+                        // add the cross product transition for the current combination of source transitions
                         newState.addDepartingTransition(
                                 mOldStatesToNewState.get(thisReachableState).get(otherReachableState), symbol);
                     }
@@ -261,9 +275,22 @@ public class Automaton {
             }
         }
 
-        private void createCrossProductEpsilonTransitions(State newState, State state1, State state2) {
-            for (State thisReachableState : state1.getTransitions(null)) {
-                newState.addDepartingTransition(mOldStatesToNewState.get(thisReachableState).get(state2), null);
+        /**
+         * Creates the epsilon transitions of the cross product in the intersection automaton for the given combination
+         * of states.
+         *
+         * @param newState   the state to create the transitions for
+         * @param thisState  the source state of the new state from the automaton on which this intersection taker works
+         * @param otherState the source state of the new state from the other automaton
+         */
+        private void createCrossProductEpsilonTransitions(State newState, State thisState, State otherState) {
+            // add the epsilon transitions for the state from the automaton on which this intersection taker works
+            for (State thisReachableState : thisState.getTransitions(null)) {
+                newState.addDepartingTransition(mOldStatesToNewState.get(thisReachableState).get(otherState), null);
+            }
+            // add the epsilon transitions for the state from the other automaton
+            for (State thisReachableState : otherState.getTransitions(null)) {
+                newState.addDepartingTransition(mOldStatesToNewState.get(thisReachableState).get(thisState), null);
             }
         }
 
@@ -371,7 +398,7 @@ public class Automaton {
          * @param accept        <code>true</code> to look for an accept state, <code>false</code> to look for a state
          *                      that is not an accept state
          * @return <code>true</code> if the epsilon closure of the given state contains at least one state of the given
-         * kinde, <code>false</code> otherwise
+         * kind, <code>false</code> otherwise
          */
         private boolean checkEpsilonClosure(State state, String currentString, boolean accept) {
             // if we can reach the kind of state we're looking for using only epsilon transitions, return true
